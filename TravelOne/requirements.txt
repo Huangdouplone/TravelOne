@@ -1,0 +1,4 @@
+# 本项目零第三方依赖即可运行（只用 Python 标准库）。
+# 可选：安装 requests 后，上游请求会复用连接、速度略好（缺失时自动降级 urllib）。
+#   pip install requests
+requests>=2.28; python_version >= "3.8"

@@ -1,0 +1,140 @@
+{
+  "checked_at": "2026-11-11 00:53:55",
+  "mode": "dynamic national coverage",
+  "places_discovered": 245,
+  "places_scanned": 61,
+  "progress": 0.249,
+  "sweeps": 59,
+  "discovery_rounds": 1,
+  "totals": {
+    "attractions": 12618,
+    "hotels": 6993,
+    "metros": 475
+  },
+  "priced": {
+    "attractions": 4382,
+    "hotels": 6181
+  },
+  "top_places": [
+    {
+      "name": "北京市",
+      "code": "131",
+      "attractions": 274,
+      "hotels": 124
+    },
+    {
+      "name": "上海市",
+      "code": "289",
+      "attractions": 265,
+      "hotels": 125
+    },
+    {
+      "name": "南阳市",
+      "code": "309",
+      "attractions": 276,
+      "hotels": 113
+    },
+    {
+      "name": "广州市",
+      "code": "257",
+      "attractions": 264,
+      "hotels": 117
+    },
+    {
+      "name": "佛山市",
+      "code": "138",
+      "attractions": 264,
+      "hotels": 117
+    },
+    {
+      "name": "信阳市",
+      "code": "214",
+      "attractions": 262,
+      "hotels": 116
+    },
+    {
+      "name": "合肥市",
+      "code": "127",
+      "attractions": 253,
+      "hotels": 117
+    },
+    {
+      "name": "安阳市",
+      "code": "267",
+      "attractions": 252,
+      "hotels": 118
+    },
+    {
+      "name": "吉安市",
+      "code": "318",
+      "attractions": 252,
+      "hotels": 117
+    },
+    {
+      "name": "太原市",
+      "code": "176",
+      "attractions": 249,
+      "hotels": 119
+    },
+    {
+      "name": "南昌市",
+      "code": "163",
+      "attractions": 248,
+      "hotels": 118
+    },
+    {
+      "name": "南宁市",
+      "code": "261",
+      "attractions": 247,
+      "hotels": 119
+    },
+    {
+      "name": "大连市",
+      "code": "167",
+      "attractions": 248,
+      "hotels": 114
+    },
+    {
+      "name": "哈尔滨市",
+      "code": "48",
+      "attractions": 256,
+      "hotels": 106
+    },
+    {
+      "name": "唐山市",
+      "code": "265",
+      "attractions": 247,
+      "hotels": 114
+    },
+    {
+      "name": "常州市",
+      "code": "348",
+      "attractions": 247,
+      "hotels": 113
+    },
+    {
+      "name": "上饶市",
+      "code": "364",
+      "attractions": 244,
+      "hotels": 116
+    },
+    {
+      "name": "宣城市",
+      "code": "190",
+      "attractions": 246,
+      "hotels": 113
+    },
+    {
+      "name": "六安市",
+      "code": "298",
+      "attractions": 249,
+      "hotels": 110
+    },
+    {
+      "name": "宝鸡市",
+      "code": "171",
+      "attractions": 247,
+      "hotels": 107
+    }
+  ]
+}

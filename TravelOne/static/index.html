@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<!-- Copyright (c) 2026 黄豆666/huangdouplone · SPDX-License-Identifier: MIT -->
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TravelOne · All-in-one travel assistant</title>
+<meta name="description" content="Live attraction and hotel crawling with ticket and room-rate comparison, Baidu Maps location and day-by-day trip routing. No database, single page.">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzBkNWM1MiIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTIwLjUgMTEuNWwtMi42IDYuNC02LjQgMi42IDIuNi02LjR6IiBmaWxsPSIjZmZmIi8+PC9zdmc+">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar" id="sidebar">
+    <button class="side-close" id="sideClose" aria-label="Close menu">✕</button>
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <polygon points="15.6 8.4 13.4 13.6 8.4 15.6 10.6 10.4" fill="#fff" stroke="none"></polygon>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <b>TravelOne</b>
+        <span>Explore · Compare · Route</span>
+      </div>
+    </div>
+
+    <div class="side-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+      <input id="searchInput" type="search" placeholder="Search attractions / hotels / tags" autocomplete="off">
+    </div>
+
+    <nav class="nav" id="sideNav">
+      <button class="nav-item active" data-target="overview"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span>Overview</span></button>
+      <button class="nav-item" data-target="attractions"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20V9l6-4 6 4v11"></path><path d="M15 20V12l6-3v11"></path><path d="M3 20h18"></path></svg><span>Attractions</span></button>
+      <button class="nav-item" data-target="hotels"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8h16v12"></path><path d="M4 14h16"></path><path d="M2 20h20"></path><path d="M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3"></path></svg><span>Hotels</span></button>
+      <button class="nav-item" data-target="compare"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h7M4 12h7M4 18h7"></path><path d="M14 6h6M14 12h6M14 18h6"></path></svg><span>Price comparison</span></button>
+      <button class="nav-item" data-target="trip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"></path></svg><span>Trip & route</span><i class="badge" id="tripBadge">0</i></button>
+      <button class="nav-item" data-drawer="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"></ellipse><path d="M4 5.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path><path d="M4 11.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path></svg><span>Data sources</span></button>
+    </nav>
+
+    <div class="side-block">
+      <h4>City / Nationwide</h4>
+      <div class="side-city-input">
+        <input id="cityInput" type="search" placeholder="Enter any city; leave blank for nationwide" autocomplete="off">
+        <button class="btn sm" id="cityGo">Search</button>
+      </div>
+    </div>
+
+    <div class="side-block">
+      <h4>Popular cities</h4>
+      <div class="side-cities" id="sideCities"></div>
+    </div>
+
+    <div class="side-block">
+      <h4>Data overview</h4>
+      <div style="font-size:11.5px;color:#a9c3be;line-height:1.8">
+        Attractions <b style="color:#fff" id="sideAttractions">—</b> · Hotels <b style="color:#fff" id="sideHotels">—</b><br>
+        Metro stations <b style="color:#fff" id="sideMetros">—</b> · refresh every <b style="color:#fff" id="sideInterval">—</b>
+      </div>
+    </div>
+
+  </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- ===== Main ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Open menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
+      </button>
+      <div class="crumbs">TravelOne <span>/</span> <b id="crumbNow">Overview</b></div>
+<div class="top-actions">
+        <div class="mode-switch" id="modeSwitch" role="group" aria-label="国内版 / 国际版">
+          <button type="button" data-mode="cn" class="on">国内</button>
+          <button type="button" data-mode="global">国际</button>
+        </div>
+        <button class="btn icon-only" id="topSearch" title="Search attractions and hotels (Ctrl K)" aria-label="Search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+        </button>
+        <button class="btn icon-only" id="settingsBtn" title="Settings" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"></path></svg>
+          <span class="sr-only">Settings</span>
+        </button>
+        <button class="btn" id="langBtn" data-lang-toggle title="切换到中文" aria-label="切换到中文">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"></path></svg>
+          <span>中文</span>
+        </button>
+        <button class="btn" id="refreshBtn" title="Fetch the latest attractions and hotels now">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"></path><path d="M21 3v6h-6"></path></svg>
+          <span id="refreshLabel">Refresh</span>
+        </button>
+        <button class="btn" id="fontBtn" title="Toggle larger text for presenting or easier reading">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V7h8"></path><path d="M8 20V11"></path><path d="M15 20V10h6"></path></svg>
+          <span id="fontLabel">Larger text</span>
+        </button>
+        <button class="btn" id="locateBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+          Locate
+        </button>
+        <button class="btn" id="mapToggle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6.5 9 4 15 6.5 21 4 21 17.5 15 20 9 17.5 3 20"></polygon><line x1="9" y1="4" x2="9" y2="17.5"></line><line x1="15" y1="6.5" x2="15" y2="20"></line></svg>
+          Map
+        </button>
+        <button class="btn primary" id="tripJump">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"></path><path d="M9 7V4h6v3"></path><path d="M4 12h16"></path></svg>
+          <span class="trip-label">My trip</span>
+          <i class="count-pill" id="tripCount">0</i>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Overview -->
+      <section class="section" id="overview">
+        <div class="hero">
+          <h1>A one-stop <em>travel planner</em></h1>
+          <p class="hero-line" id="heroLine"></p>
+          <button class="hero-search" id="searchOpen" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+          <span>Search an attraction, hotel or landmark</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <div class="hero-stats" id="heroStats">
+            <div class="stat teal"><b id="statAttractions">—</b><span>Attractions</span></div>
+            <div class="stat gold"><b id="statHotels">—</b><span>Hotels nearby</span></div>
+            <div class="stat"><b id="statMetros">—</b><span>Metro stations</span></div>
+            <div class="stat teal"><b id="statCities">—</b><span>Areas covered</span></div>
+            <div class="stat gold"><b id="statInterval">—</b><span>Refresh cycle</span></div>
+          </div>
+          <div class="hero-tags">
+            <span>Live crawl · zero config</span><span>Prices with sources</span><span>No database</span><span>Metro distance</span><span>Baidu Maps location</span><span>Day-by-day routes</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Attractions -->
+      <section class="section" id="attractions">
+        <div class="section-head">
+          <h2 class="section-title">Explore attractions <small id="attrMeta">Loading…</small></h2>
+          <div class="section-tools">
+            <div class="seg" id="attrSort">
+              <button class="on" data-sort="recommend">Recommended</button>
+              <button data-sort="rating">Top rated</button>
+              <button data-sort="price_asc">Lowest price</button>
+              <button data-sort="distance">Nearest</button>
+            </div>
+            <button class="btn sm" id="attrFilterToggle">Hide filters</button>
+          </div>
+        </div>
+
+        <div class="panel" id="attrFilterPanel" style="margin-bottom:14px">
+          <button class="panel-head" data-panel="attrFilter">
+            <span>Filters</span>
+            <span style="display:flex;align-items:center;gap:10px">
+              <span id="attrFilterSummary" style="font-weight:500;color:#7c9099;font-size:12px">All attractions</span>
+              <span class="chev">▾</span>
+            </span>
+          </button>
+          <div class="panel-body">
+            <div class="intl-filter-note" id="intlFilterNote" hidden>Global sources carry no ticket price, rating or theme tags; these filters do not apply.</div>
+            <div class="filters">
+              <div class="filter-group" data-group="city">
+                <div class="filter-label">City <button class="chip sm" data-toggle-group="city">Collapse</button></div>
+                <div class="chips" id="cityChips"></div>
+              </div>
+              <div class="filter-group" data-group="rating">
+                <div class="filter-label">Rating</div>
+                <div class="chips" id="ratingChips">
+                  <button class="chip on" data-rating="0">Any</button>
+                  <button class="chip" data-rating="4.5">4.5+</button>
+                  <button class="chip" data-rating="4.7">4.7+</button>
+                  <button class="chip" data-rating="4.8">4.8+</button>
+                </div>
+              </div>
+              <div class="filter-group" data-group="price">
+                <div class="filter-label">Ticket price</div>
+                <div class="chips" style="margin-bottom:8px" id="priceQuick">
+                  <button class="chip" data-price="0,0">Free</button>
+                  <button class="chip" data-price="1,50">¥1-50</button>
+                  <button class="chip" data-price="50,100">¥50-100</button>
+                  <button class="chip" data-price="100,200">¥100-200</button>
+                  <button class="chip" data-price="200,">¥200+</button>
+                </div>
+                <div class="range-row">
+                  <input type="number" id="minPrice" placeholder="Min price" min="0" step="10">
+                  <span>—</span>
+                  <input type="number" id="maxPrice" placeholder="Max price" min="0" step="10">
+                </div>
+              </div>
+              <div class="filter-group" data-group="level">
+                <div class="filter-label">A-level / type</div>
+                <div class="chips" id="levelChips"></div>
+              </div>
+              <div class="filter-group" data-group="tags">
+                <div class="filter-label">Themes <button class="chip sm" data-clear-tags>Clear</button></div>
+                <div class="chips" id="tagChips"></div>
+              </div>
+              <div class="filter-group" data-group="feature">
+                <div class="filter-label">Preferences</div>
+                <div class="chips" style="margin-bottom:10px">
+                  <button class="chip" data-flag="night">Open at night</button>
+                  <button class="chip" data-flag="indoor">Indoor</button>
+                  <button class="chip" data-flag="nature">Nature</button>
+                  <button class="chip" data-flag="free">Free entry</button>
+                </div>
+                <div class="switch-row">
+                  <span>Within 30 km of me</span>
+                  <button class="switch" id="nearSwitch" aria-label="Nearby only"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-grid" id="grid">
+          <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        </div>
+        <div class="more-wrap"><button class="btn" id="attrMore" style="display:none">Load more attractions</button></div>
+      </section>
+
+      <!-- Hotels -->
+      <section class="section" id="hotels">
+        <div class="section-head">
+          <h2 class="section-title">Hotels nearby <small id="hotelMeta">Loading…</small></h2>
+          <div class="section-tools">
+            <div class="seg" id="hotelSort">
+              <button class="on" data-sort="price_asc">Lowest price</button>
+              <button data-sort="rating">Top rated</button>
+              <button data-sort="metro">Closest to metro</button>
+              <button data-sort="near">Closest to attraction</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="hotelFilterPanel" style="margin-bottom:14px">
+          <button class="panel-head" data-panel="hotelFilter">
+            <span>Hotel filters</span>
+            <span style="display:flex;align-items:center;gap:10px">
+              <span id="hotelFilterSummary" style="font-weight:500;color:#7c9099;font-size:12px">All hotels</span>
+              <span class="chev">▾</span>
+            </span>
+          </button>
+          <div class="panel-body">
+            <div class="intl-filter-note" id="intlHotelFilterNote" hidden>Global sources carry no room rate, star level or rating; price and rating filters do not apply.</div>
+            <div class="filters" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));display:grid">
+              <div class="filter-group">
+                <div class="filter-label">Price range</div>
+                <div class="chips" style="margin-bottom:8px" id="hotelPriceQuick">
+                  <button class="chip hotel" data-price="0,400">Under ¥400</button>
+                  <button class="chip hotel" data-price="400,800">¥400-800</button>
+                  <button class="chip hotel" data-price="800,1500">¥800-1500</button>
+                  <button class="chip hotel" data-price="1500,">¥1500+</button>
+                </div>
+                <div class="range-row">
+                  <input type="number" id="hotelMinPrice" placeholder="Min price" min="0" step="50">
+                  <span>—</span>
+                  <input type="number" id="hotelMaxPrice" placeholder="Max price" min="0" step="50">
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-label">Star rating</div>
+                <div class="chips" id="starChips">
+                  <button class="chip hotel on" data-star="0">Any</button>
+                  <button class="chip hotel" data-star="5">5-star</button>
+                  <button class="chip hotel" data-star="4">4-star</button>
+                  <button class="chip hotel" data-star="3">3-star</button>
+                  <button class="chip hotel" data-star="2">2-star</button>
+                  <button class="chip hotel" data-star="1">1-star</button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-label">Rating</div>
+                <div class="chips" id="hotelRatingChips">
+                  <button class="chip hotel on" data-hrating="0">Any</button>
+                  <button class="chip hotel" data-hrating="4.5">4.5+</button>
+                  <button class="chip hotel" data-hrating="4.6">4.6+</button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-label">To metro</div>
+                <div class="chips" id="metroChips">
+                  <button class="chip hotel on" data-metro="0">Any</button>
+                  <button class="chip hotel" data-metro="200">Within 200 m</button>
+                  <button class="chip hotel" data-metro="500">Within 500 m</button>
+                  <button class="chip hotel" data-metro="1000">Within 1 km</button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-label">To attraction</div>
+                <div class="chips" style="margin-bottom:8px" id="hotelNearChips">
+                  <button class="chip hotel on" data-near="0">Any</button>
+                  <button class="chip hotel" data-near="1">Within 1 km</button>
+                  <button class="chip hotel" data-near="3">Within 3 km</button>
+                  <button class="chip hotel" data-near="5">Within 5 km</button>
+                </div>
+                <select id="nearAttraction" style="width:100%;padding:7px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:#fff">
+                  <option value="">Reference attraction (first in city by default)</option>
+                </select>
+                <input id="nearFilter" class="chips-search" type="search" placeholder="Filter this list…" autocomplete="off">
+                <button class="chips-toggle" id="nearAll" type="button" data-near-all="1">
+                  <span>Load all attractions in this city</span><i class="chev">▾</i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-grid" id="hotelGrid">
+          <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        </div>
+        <div class="more-wrap"><button class="btn" id="hotelMore" style="display:none">Load more hotels</button></div>
+      </section>
+
+      <!-- Price comparison -->
+      <section class="section" id="compare">
+        <div class="section-head">
+          <h2 class="section-title">Price comparison <small>Select attractions and hotels to compare online, list and channel prices</small></h2>
+          <div class="section-tools">
+            <button class="btn sm" id="cmpClear">Clear selection</button>
+            <button class="btn sm primary" id="cmpRun">Compare</button>
+          </div>
+        </div>
+        <div class="compare-grid">
+          <div class="panel">
+            <button class="panel-head" data-panel="cmpAttr">
+              <span>Pick attractions (up to 6)</span><span class="chev">▾</span>
+            </button>
+            <div class="panel-body">
+              <div class="pick-list" id="cmpAttrList"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <button class="panel-head" data-panel="cmpHotel">
+              <span>Pick hotels (up to 8)</span><span class="chev">▾</span>
+            </button>
+            <div class="panel-body">
+              <div class="pick-list" id="cmpHotelList"></div>
+            </div>
+          </div>
+        </div>
+        <div id="cmpResult" style="margin-top:14px"></div>
+      </section>
+
+      <!-- Trip -->
+      <section class="section" id="trip">
+        <div class="section-head">
+          <h2 class="section-title">Trip & route planning <small id="tripMeta">Add places or hotels, then plan in one click</small></h2>
+          <div class="section-tools">
+            <button class="btn sm" id="tripNewDay">Add a day</button>
+            <button class="btn sm primary" id="planBtn" disabled>Plan route</button>
+          </div>
+        </div>
+        <div class="trip-layout">
+          <div id="tripDays"></div>
+          <div class="panel">
+            <button class="panel-head" data-panel="planParams">
+              <span>Planning options</span><span class="chev">▾</span>
+            </button>
+            <div class="panel-body">
+              <div class="filters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+                <div>
+                  <div class="filter-label">Travel mode</div>
+                  <select id="planMode" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:#fff">
+                    <option value="driving">Drive</option><option value="walking">Walk</option>
+                    <option value="riding">Cycle</option><option value="transit">Transit</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="filter-label">Daily start time</div>
+                  <input id="planStart" type="time" value="09:00" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:#fff">
+                </div>
+                <div>
+                  <div class="filter-label">Daily time budget (hours)</div>
+                  <input id="planLimit" type="number" value="10" min="4" max="16" step="1" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:#fff">
+                </div>
+                <div>
+                  <div class="filter-label">Origin</div>
+                  <select id="planOrigin" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:#fff">
+                    <option value="">Trip centre (auto)</option>
+                    <option value="me">My location</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="filter-label">Order optimisation</div>
+                  <select id="planOptimize" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:#fff">
+                    <option value="1">Auto (nearest + 2-opt)</option>
+                    <option value="0">Keep my order</option>
+                  </select>
+                </div>
+              </div>
+              <div class="warn-box" id="planProviderNote">Checking routing engine…</div>
+            </div>
+          </div>
+          <div class="panel" style="margin-bottom:14px" id="transportPanel">
+            <div class="panel-head"><span>Intercity transport &amp; cost</span><span class="badge-soft" id="transportSource">Not compared yet</span></div>
+            <div class="panel-body">
+              <div class="filters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+                <div>
+                  <div class="filter-label">From city</div>
+                  <input id="transportFrom" type="text" placeholder="e.g. Beijing" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:var(--surface);color:var(--ink)">
+                </div>
+                <div>
+                  <div class="filter-label">To city</div>
+                  <input id="transportTo" type="text" placeholder="e.g. Shanghai" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:var(--surface);color:var(--ink)">
+                </div>
+                <div>
+                  <div class="filter-label">Depart date</div>
+                  <input id="transportDate" type="date" style="width:100%;padding:8px 9px;border-radius:9px;border:1px solid var(--line);font-size:12.5px;background:var(--surface);color:var(--ink)">
+                </div>
+                <div style="display:flex;align-items:flex-end">
+                  <button class="btn primary" id="transportGo" style="width:100%;justify-content:center">Compare options</button>
+                </div>
+              </div>
+              <div id="transportResult" style="margin-top:10px"></div>
+              <div class="platform-note" id="transportNote">Flights and trains are compared from public data only. TravelOne does not sell tickets or take bookings.</div>
+            </div>
+          </div>
+          <div id="planResult"></div>
+        </div>
+      </section>
+
+      <!-- Data sources and guide -->
+
+    </main>
+  </div>
+</div>
+
+<!-- ===== Maps ===== -->
+<div class="map-panel" id="mapPanel">
+  <div class="map-head">
+    <div>
+      <b>Map location</b>
+      <div class="map-note" id="mapNote">Checking engine…</div>
+    </div>
+    <div class="map-head-actions">
+      <button class="btn sm" id="mapConfigBtn" title="View Baidu Maps AK application steps">Setup guide</button>
+      <button class="btn sm ghost" id="closeMap" aria-label="Close map" title="Close map">✕</button>
+    </div>
+  </div>
+  <div class="map-canvas" id="mapCanvas"></div>
+  <div class="map-tools">
+    <button id="zoomIn" title="Zoom in">＋</button>
+    <button id="zoomOut" title="Zoom out">－</button>
+    <button id="fitAll" title="Fit all markers">⤢</button>
+  </div>
+  <div class="map-legend">
+    <span><i style="background:#0d5c52"></i>Attractions</span>
+    <span><i style="background:#9d4f38"></i>Hotels</span>
+    <span><i style="background:#c8843a"></i>Trip stops</span>
+  </div>
+</div>
+
+
+<!-- ===== Settings drawer ===== -->
+<div class="drawer-mask" id="settingsMask"></div>
+<aside class="drawer" id="settingsDrawer" aria-hidden="true" aria-label="Settings">
+  <div class="drawer-head">
+    <div>
+      <b>Settings</b>
+      <small>Appearance, data sources and map API</small>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="Close settings">✕</button>
+  </div>
+  <div class="drawer-body">
+    <section class="drawer-block">
+      <h4>Appearance</h4>
+      <div class="setting-row">
+        <span>Language</span>
+        <div class="seg small" id="langSeg">
+          <button type="button" data-lang-set="en">English</button>
+          <button type="button" data-lang-set="zh">中文</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span>Theme</span>
+        <div class="seg small" id="themeSeg">
+          <button type="button" data-theme-set="auto">Auto</button>
+          <button type="button" data-theme-set="light">Light</button>
+          <button type="button" data-theme-set="dark">Dark</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span>Text size</span>
+        <button class="btn sm" id="fontBtnDrawer">Larger text</button>
+      </div>
+    </section>
+
+    <section class="drawer-block">
+      <h4>Data sources & crawl status</h4>
+      <p class="drawer-note" id="sourceMeta">Continuous nationwide sweep, no configuration</p>
+      <div class="drawer-actions">
+        <button class="btn sm primary" id="collectNow">Fetch this city now</button>
+        <button class="btn sm ghost" id="clearCacheBtn">Clear local snapshots</button>
+      </div>
+      <div class="source-grid" id="sourceGrid"></div>
+    </section>
+
+    <section class="drawer-block">
+      <h4>Transport &amp; fuel sources</h4>
+      <div id="transportGrid" class="platform-grid">
+        <div class="platform-card">
+          <div class="sc-head"><b>Fuel price table</b><span class="pill ok">Live</span></div>
+          <p>Provincial 92#/95#/0# pump prices are read from a public price table and cached for six hours; they feed the self-drive cost.</p>
+        </div>
+        <div class="platform-card">
+          <div class="sc-head"><b>China Railway (12306)</b><span class="pill ok">Timetable</span></div>
+          <p>Train numbers and origin/destination are read from the public 12306 timetable files, so each corridor lists its real trains. The ticket API returns an encrypted payload, so fares stay estimates from the published tariff.</p>
+        </div>
+        <div class="platform-card">
+          <div class="sc-head"><b>Flight lists</b><span class="pill warn">Signed API</span></div>
+          <p>Airline and OTA flight lists require a signed client session; TravelOne shows time and price ranges marked as estimates and never presents them as live quotes.</p>
+        </div>
+        <div class="platform-card">
+          <div class="sc-head"><b>Booking</b><span class="pill idle">Not provided</span></div>
+          <p>There is no purchase or ticketing channel in this app: it only synchronises and compares published prices and travel time.</p>
+        </div>
+      </div>
+
+      <h4>Platform sources</h4>
+      <div id="platformGrid" class="platform-grid">
+        <div class="platform-card">
+          <div class="sc-head"><b>Qunar</b><span class="pill ok">Live price</span></div>
+          <p>Channel room rates come back through the built-in Baidu Maps aggregation; each quote keeps its own source label and fetch time.</p>
+        </div>
+        <div class="platform-card">
+          <div class="sc-head"><b>Ctrip</b><span class="pill warn">Ratings only</span></div>
+          <p>Public pages expose hotel names, star ratings, guest scores and review counts. Room prices require an authenticated session, so no anonymous price is shown.</p>
+        </div>
+        <div class="platform-card">
+          <div class="sc-head"><b>Trip.com (Ctrip Group)</b><span class="pill idle">No anonymous feed</span></div>
+          <p>Featured lists carry prices, but there is no stable per-hotel anonymous endpoint; the app does not guess or mirror those numbers.</p>
+        </div>
+        <div class="platform-card">
+          <div class="sc-head"><b>Tongcheng</b><span class="pill idle">Blocked</span></div>
+          <p>The H5 list API (/tapi/*) requires an h5sign signature; anonymous requests are rejected, so no price or rating is claimed.</p>
+        </div>
+        <div class="platform-card">
+          <div class="sc-head"><b>Meituan</b><span class="pill idle">Blocked</span></div>
+          <p>Hotel search returns 403 without an mtgsig-signed session; the app reports the platform as unavailable instead of inventing a quote.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="drawer-block">
+      <h4>Map API</h4>
+      <div class="drawer-actions">
+        <button class="btn sm primary" id="guideConfigBtn">Open AK settings</button>
+      </div>
+      <div class="guide-wrap" id="mapGuide"></div>
+    </section>
+
+    <section class="drawer-block">
+      <h4>Crawl log</h4>
+      <div class="table-wrap">
+        <table class="cmp" id="runTable">
+          <thead><tr><th>Started</th><th>Trigger</th><th>City</th><th>Status</th><th>Fetched</th><th>New</th></tr></thead>
+          <tbody><tr><td colspan="6" style="color:#7c9099">No crawl runs yet</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="drawer-block">
+      <h4>About</h4>
+      <div class="warn-box">This project <strong>ships no database and no bundled dataset</strong>: attractions, hotels, tickets and rates are crawled from Baidu Maps at runtime. <code>data/cache</code> holds only the last fetch per area as JSON and can be cleared in one click.</div>
+    </section>
+  </div>
+</aside>
+
+<!-- Floating actions -->
+<button class="to-top" id="toTop" aria-label="Back to top">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"></path><path d="M5 12l7-7 7 7"></path></svg>
+</button>
+<div class="fab-group">
+  <button class="fab" id="mapFab" title="OpenMap">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6.5 9 4 15 6.5 21 4 21 17.5 15 20 9 17.5 3 20"></polygon><line x1="9" y1="4" x2="9" y2="17.5"></line><line x1="15" y1="6.5" x2="15" y2="20"></line></svg>
+  </button>
+</div>
+
+<div class="modal-mask search-mask" id="searchMask">
+  <div class="modal search-modal" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="search-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+      <input id="searchField" type="search" placeholder="Search an attraction, hotel or landmark" autocomplete="off" spellcheck="false">
+      <button class="modal-close-inline" id="searchClose" aria-label="Close search">✕</button>
+    </div>
+<div class="search-tabs" id="searchKinds">
+      <button class="on" data-skind="all">All</button>
+      <button data-skind="attraction">Attractions</button>
+      <button data-skind="hotel">Hotels</button>
+    </div>
+    <div class="search-meta" id="searchMeta">Type at least two characters; results span every tracked city.</div>
+    <div class="search-results" id="searchResults"></div>
+    <div class="search-foot"><button class="btn sm primary" id="searchMore" style="display:none">Load more</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="detailMask"><div class="modal" id="detailModal" role="dialog" aria-modal="true" aria-label="Details"></div></div>
+
+<!-- Baidu Mapss AK setup guide -->
+<div class="modal-mask" id="configMask">
+  <div class="modal config-modal" id="configModal" role="dialog" aria-modal="true" aria-label="MapSetup guide">
+    <button class="modal-close" data-close="config" aria-label="Close">✕</button>
+    <div class="cfg-body">
+      <h3>Enable the real Baidu basemap and live routes</h3>
+      <p class="cfg-lead">Everything works without an AK: lists, price comparison, the offline schematic map, nearest-first sorting and locally estimated routes. With an AK the map becomes the real basemap, browser geolocation is available, and routes are computed live by Baidu.<strong>AKs are stored only on this machine.</strong></p>
+
+      <div class="cfg-steps">
+        <div class="cfg-step"><b>1</b><div><span>Open <a href="https://lbsyun.baidu.com/" target="_blank" rel="noopener">Baidu LBS Open Platform</a> and complete identity verification</span></div></div>
+        <div class="cfg-step"><b>2</b><div><span>Console → App Management → My Apps → Create App. Choose type <em>Browser</em> and enable JavaScript API</span></div></div>
+        <div class="cfg-step"><b>3</b><div><span>Set the Referer whitelist to  <code>*</code> (or add 127.0.0.1 and localhost too). Replace it with your domain in production.</span></div></div>
+        <div class="cfg-step"><b>4</b><div><span>Copy the 24-character AK and paste it into Browser-side AK below</span></div></div>
+        <div class="cfg-step"><b>5</b><div><span>For real driving/transit routes and address lookup, create a second <em>Server</em> app with IP whitelist 127.0.0.1 and paste its AK into Server AK</span></div></div>
+        <div class="cfg-step"><b>6</b><div><span>Save, click Test AK, and it takes effect immediately; the map header shows Baidu Maps</span></div></div>
+      </div>
+
+      <div class="cfg-form">
+        <div class="ak-status" id="akStatus">No AK configured; using the offline schematic map</div>
+        <label>Browser-side AK (map rendering / geolocation)
+          <input id="cfgJsAk" type="password" placeholder="Paste only: Ctrl+V / Cmd+V" autocomplete="off" spellcheck="false" data-secure="1" inputmode="text">
+        </label>
+        <label>Server AK (routing / geocoding, optional)
+          <input id="cfgServerAk" type="password" placeholder="Paste only: Ctrl+V / Cmd+V" autocomplete="off" spellcheck="false" data-secure="1" inputmode="text">
+        </label>
+        <div class="cfg-hint">Security: the field accepts paste only and blocks copy and right-click. The value is encrypted on this machine before saving; only ciphertext is stored.</div>
+        <div class="cfg-actions">
+          <button class="btn primary" id="cfgSave">Save and apply</button>
+          <button class="btn" id="cfgTest">Test AK</button>
+          <button class="btn" id="cfgLater">Later</button>
+        </div>
+        <div class="cfg-hint" id="cfgHint">AKs are stored only on this machine in data/runtime_config.json (encrypted) and never uploaded.</div>
+      </div>
+
+      <details class="cfg-faq">
+        <summary>Common errors (expand)</summary>
+        <div class="table-wrap">
+          <table class="cmp">
+            <thead><tr><th>Error</th><th>Cause</th><th>Fix</th></tr></thead>
+            <tbody>
+              <tr><td><code>APP service disabled</code></td><td>JavaScript API was not enabled when the app was created</td><td>Edit the app, enable JavaScript API, save again</td></tr>
+              <tr><td><code>AK does not exist / INVALID_USER_SCODE</code></td><td>The AK was copied incompletely or deleted</td><td>Copy it again without spaces</td></tr>
+              <tr><td><code>Referer whitelist validation failed</code></td><td>The whitelist does not include the current origin</td><td>Use * or add 127.0.0.1</td></tr>
+              <tr><td><code>Permission denied</code></td><td>A browser AK was used on a server endpoint</td><td>Create a separate server AK for server endpoints</td></tr>
+              <tr><td><code>Quota exceeded</code></td><td>The daily free quota is used up</td><td>Resets next day, or raise the quota</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<!-- file:// guidance -->
+<div class="guard" id="fileGuard" hidden>
+  <div class="guard-card">
+    <h2>Open this app through the local service</h2>
+    <p>Detected that the page was opened via  <code>file://</code> . Browsers block all data requests from file:// URLs, so detail views show Failed to fetch.</p>
+    <ol>
+      <li>Windows: double-click  <code>start.bat</code></li>
+      <li>macOS / Linux: run in the project folder <code>bash start.sh</code></li>
+      <li>or run manually:<code>python app.py</code></li>
+    </ol>
+    <p>Then open  <code>http://127.0.0.1:8848</code>  in your browser to load live attraction and hotel data.</p>
+    <button class="btn primary" onclick="location.reload()">Started — reload</button>
+  </div>
+</div>
+<div id="toast" aria-live="polite"></div>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script src="js/api.js"></script>
+<script src="js/map.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
