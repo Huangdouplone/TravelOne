@@ -141,6 +141,7 @@
     collect: (city) => request('/api/collect' + qs({ city }), { method: 'POST' }),
     collectStatus: () => request('/api/collect/status'),
     createTrip: (body) => request('/api/trips', { method: 'POST', body: body || { title: 'My trip' } }),
+    importTrip: (payload) => request('/api/trips/import', { method: 'POST', body: payload }),
     getTrip: (id) => request('/api/trips/' + id),
     addItem: (id, body) => request('/api/trips/' + id + '/items', { method: 'POST', body }),
     removeItem: (id, itemId) => request('/api/trips/' + id + '/items/' + itemId, { method: 'DELETE' }),

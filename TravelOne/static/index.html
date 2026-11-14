@@ -351,7 +351,10 @@
       <section class="section" id="trip">
         <div class="section-head">
           <h2 class="section-title">Trip & route planning <small id="tripMeta">Add places or hotels, then plan in one click</small></h2>
-          <div class="section-tools">
+<div class="section-tools">
+            <button class="btn sm" id="tripExport" disabled>Export JSON</button>
+            <button class="btn sm" id="tripImport">Import JSON</button>
+            <input type="file" id="tripFileInput" accept="application/json,.json" style="display:none">
             <button class="btn sm" id="tripNewDay">Add a day</button>
             <button class="btn sm primary" id="planBtn" disabled>Plan route</button>
           </div>

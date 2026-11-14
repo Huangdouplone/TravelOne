@@ -696,6 +696,14 @@ def api_trip_create(body: Dict[str, Any]) -> Response:
     return _json({"ok": True, "trip": trip}, 201)
 
 
+def api_trip_import(body: Dict[str, Any]) -> Response:
+    if not isinstance(body, dict):
+        raise ValueError("Trip payload must be a JSON object")
+    payload = body.get("trip") if isinstance(body.get("trip"), dict) else body
+    trip = trips.import_trip(payload)
+    return _json({"ok": True, "trip": trip}, 201)
+
+
 def api_trip_get(trip_id: int) -> Response:
     trip = trips.get(trip_id)
     if not trip:
@@ -714,7 +722,8 @@ def api_trip_add_item(trip_id: int, body: Dict[str, Any]) -> Response:
     if not item:
         return _json({"ok": False, "message": "Place not found in live data. Search again and add it from the results."}, 400)
     snapshot = {
-        "key": item.get("key") or key, "name": item.get("name"), "city": item.get("city"),
+        "key": item.get("key") or key, "name": item.get("name"),
+        "attraction_name": item.get("name"), "city": item.get("city"),
         "address": item.get("address"), "lat": item.get("lat"), "lng": item.get("lng"),
         "rating": item.get("rating"), "price": item.get("price"), "kind": kind,
         "cover_image": item.get("cover_image"), "tags": item.get("tags") or [],
@@ -909,6 +918,8 @@ def dispatch(method: str, raw_path: str, query: Dict[str, List[str]], body: byte
             return api_platforms(query)
         if path == "/api/trips" and method == "POST":
             return api_trip_create(_body(body))
+        if path == "/api/trips/import" and method == "POST":
+            return api_trip_import(_body(body))
         if path.startswith("/api/trips/"):
             parts = [p for p in path[len("/api/trips/"):].split("/") if p]
             trip_id = int(parts[0])

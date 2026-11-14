@@ -100,6 +100,8 @@
     "Pick hotels (up to 8)": "选择酒店（最多 8 家）",
     "Trip & route planning": "行程与路线规划",
     "Add places or hotels, then plan in one click": "添加景点或酒店后即可一键规划",
+"Export JSON": "导出 JSON",
+    "Import JSON": "导入 JSON",
     "Add a day": "增加一天",
     "Plan route": "生成路线规划",
     "Planning options": "规划参数",

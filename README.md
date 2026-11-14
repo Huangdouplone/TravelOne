@@ -32,7 +32,7 @@
 - **城际交通**：飞机按航距分段、区域铁路按里程估价、自驾按当地油价与固定汇率估算，全部标注“估算”。
 - **行程规划**：勾选地点与住宿，按天数生成逐日顺序、距离与时间轴。
 - **界面能力**：中英文切换、深色模式、大字版、设置抽屉、搜索弹层、响应式布局。
-- **离线演示页**：`TravelOne/TravelOne.html` 内嵌国内/国际快照与实景图，`file://` 可打开且不发外部请求。
+- **源码页直出**：服务启动后由 `static/index.html` 加载独立样式与脚本，无需预构建单页。
 
 ### 双模式对照
 
@@ -66,7 +66,7 @@ python app.py
 
 打开 <http://127.0.0.1:8848>。端口被占用时会自动顺延到 8849–8855，实际端口见控制台或 `TravelOne/logs/startup.log`。
 
-> 不要直接双击 `static/app.html`：`file://` 下浏览器会拦截 `/api` 请求。需要单文件演示时用 `TravelOne/TravelOne.html`。
+> 本开源包不含预构建单页，请通过本地服务访问；`file://` 下浏览器会拦截 `/api` 请求。
 
 ### 配置（可选）
 
@@ -114,30 +114,21 @@ python app.py
     ├── core/                  # 配置、快照、i18n、几何、加密、行程
     ├── collectors/            # 百度、去哪儿、12306、油价、Wikidata
     ├── services/              # 抓取、预热、国际数据、交通、路线
-    ├── static/                # 页面、样式、脚本、MapLibre
-    ├── tools/                 # 构建、图片素材、发布自检
-    ├── data/images/           # 离线页图片素材
+    ├── static/                # 源码页、样式、脚本、MapLibre
+    ├── data/                  # 运行快照与图片缓存（首次启动生成）
     ├── docs/                  # 数据源与双模式设计记录
-    ├── logs/                  # 启动/预热日志与图片映射
-    └── TravelOne.html         # 内嵌数据的演示页（构建产物）
+    └── logs/                  # 启动/预热日志（首次启动生成）
 ```
 
-### 构建与验证
+### 开源包范围
 
-```bash
-cd TravelOne
+本包只包含运行所需源码、配置、静态资源与设计文档：
 
-python -m compileall -q app.py web_api.py collectors core services tools
-for f in static/js/*.js; do node --check "$f"; done
+- 不包含 `tools/` 下的构建、抓取、素材与发布自检脚本，也不包含 `static/app.html`、`TravelOne.html` 等预构建页面。
+- 不包含运行缓存、日志、下载图片、离线页图片素材与内部测试记录；首次启动会自动创建所需目录并从零抓取。
+- 页面由 `static/index.html` 直接加载 `css/`、`js/`、`vendor/`，通过本地服务访问即可。
 
-python tools/build_single_page.py       # 重建 static/app.html
-python tools/build_offline_app.py TravelOne.html
-python tools/check_release.py           # 版权头 / README / LICENSE / 20MB 限制
-```
-
-- 离线页把快照 JSON 先 gzip 再 base64 内嵌，浏览器用 `DecompressionStream('gzip')` 解压后启动。
-- 图片以 WebP data URI 内嵌；城市实景组图按条目轮转，地标使用条目级图片。
-- 页面超过 20MB 时构建脚本直接失败，不会产出超限文件。
+如需重新构建单页或离线演示页，请使用完整开发工程。
 
 ### 常用接口
 
@@ -191,7 +182,7 @@ A single-page travel planner that puts **attractions, hotels, metro, ticket/room
 - **Intercity transport**: distance-banded flights, regional rail estimates, self-drive fuel at local pump prices × fixed FX — all labelled as estimates.
 - **Trip planning**: pick places and stays, then generate day-by-day order, distance and timeline.
 - **UI**: Chinese/English toggle, dark mode, larger text, settings drawer, search overlay, responsive layout.
-- **Offline demo**: `TravelOne/TravelOne.html` embeds both snapshots and photos; it opens via `file://` without external requests.
+- **Source page**: the service loads `static/index.html` with separate CSS/JS assets; no prebuilt single-page artifact is required.
 
 ### Two modes
 
@@ -225,7 +216,7 @@ python app.py
 
 Open <http://127.0.0.1:8848>. If the port is busy it moves to 8849–8855; check the console or `TravelOne/logs/startup.log`.
 
-> Do not open `static/app.html` directly: browsers block `/api` calls under `file://`. Use `TravelOne/TravelOne.html` for a single-file demo.
+> This open-source package ships no prebuilt single page. Serve it locally; browsers block `/api` calls under `file://`.
 
 ### Configuration (optional)
 
@@ -274,30 +265,21 @@ The in-page "Amap / Tongcheng" card is labelled "partnership only" and never inv
     ├── core/                  # config, snapshots, i18n, geo, crypto, trips
     ├── collectors/            # Baidu, Qunar, 12306, fuel, Wikidata
     ├── services/              # crawl, warm-up, global data, transport, routing
-    ├── static/                # pages, CSS, JS, MapLibre
-    ├── tools/                 # builds, image assets, release checks
-    ├── data/images/           # offline page image assets
+    ├── static/                # source page, CSS, JS, MapLibre
+    ├── data/                  # runtime snapshots and image cache (created on first run)
     ├── docs/                  # data source and dual-mode notes
-    ├── logs/                  # startup/warm-up logs and image maps
-    └── TravelOne.html         # embedded-data demo page (build output)
+    └── logs/                  # startup/warm-up logs (created on first run)
 ```
 
-### Build and checks
+### Open-source scope
 
-```bash
-cd TravelOne
+This package contains only the source, configuration, static assets and design notes needed to run the app:
 
-python -m compileall -q app.py web_api.py collectors core services tools
-for f in static/js/*.js; do node --check "$f"; done
+- No `tools/` build, crawl, asset or release-check scripts; no prebuilt `static/app.html` or `TravelOne.html`.
+- No runtime cache, logs, downloaded photos, offline-page image assets or internal test records; required directories are created on first run and crawling starts from zero.
+- The page loads `css/`, `js/` and `vendor/` directly from `static/index.html`; serve it locally.
 
-python tools/build_single_page.py       # rebuild static/app.html
-python tools/build_offline_app.py TravelOne.html
-python tools/check_release.py           # copyright headers / README / LICENSE / 20MB cap
-```
-
-- The offline page gzips the snapshot JSON, base64-embeds it, and inflates it with `DecompressionStream('gzip')`.
-- Photos are embedded as WebP data URIs; city scene pools rotate per item and landmarks use item-level images.
-- The build fails if the page exceeds 20MB, so an oversized artifact is never produced.
+Use the full development project if you need to rebuild the single page or offline demo.
 
 ### API
 

@@ -73,6 +73,67 @@ def remove_item(trip_id: int, item_id: int) -> Optional[Dict[str, Any]]:
         return trip
 
 
+_IMPORT_FIELDS = (
+    "key", "key_type", "name", "attraction_name", "city", "city_en", "address",
+    "lat", "lng", "rating", "price", "kind", "cover_image", "tags",
+)
+
+
+def _as_int(value: Any, default: int) -> int:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def import_trip(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Import a trip exported by another device as a new trip.
+
+    The payload may be a trip object or the wrapper written by the front end
+    (``{format, version, trip}``); the caller unwraps it. Item ids are
+    reassigned so imported data can never overwrite an existing trip.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("Trip payload must be a JSON object")
+    raw_items = payload.get("items")
+    if not isinstance(raw_items, list):
+        raise ValueError("Trip payload has no items array")
+    items: List[Dict[str, Any]] = []
+    for index, raw in enumerate(raw_items, 1):
+        if not isinstance(raw, dict):
+            continue
+        name = str(raw.get("name") or raw.get("attraction_name") or "").strip()
+        if not name:
+            continue
+        item = {field: raw[field] for field in _IMPORT_FIELDS if raw.get(field) not in (None, "")}
+        item["name"] = name
+        item["attraction_name"] = str(raw.get("attraction_name") or name)
+        item["key"] = str(raw.get("key") or "").strip()
+        item["kind"] = "hotel" if raw.get("kind") == "hotel" else "attraction"
+        item["id"] = index
+        item["day"] = max(1, _as_int(raw.get("day"), 1))
+        item["seq"] = max(0, _as_int(raw.get("seq"), 0))
+        item["visit_minutes"] = max(
+            0, _as_int(raw.get("visit_minutes"), 0 if item["kind"] == "hotel" else 120))
+        items.append(item)
+    if not items:
+        raise ValueError("Trip payload has no usable places")
+
+    with _lock:
+        data = _load()
+        trip_id = data["next_id"]
+        data["next_id"] = trip_id + 1
+        now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        title = str(payload.get("title") or "Imported trip").strip()[:120] or "Imported trip"
+        trip = {"id": trip_id, "title": title,
+                "city": str(payload.get("city") or "").strip(),
+                "start_date": str(payload.get("start_date") or "").strip(),
+                "created_at": now, "imported_at": now, "items": items}
+        data["trips"][str(trip_id)] = trip
+        _save(data)
+        return trip
+
+
 def update_items(trip_id: int, updates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     with _lock:
         data = _load()

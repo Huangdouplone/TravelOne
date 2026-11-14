@@ -1295,6 +1295,110 @@
     renderTrip();
   }
 
+const TRIP_FILE_FORMAT = 'travelone.trip';
+  const TRIP_FILE_VERSION = 1;
+  const TRIP_ITEM_FIELDS = ['key', 'key_type', 'name', 'attraction_name', 'city', 'city_en',
+    'address', 'lat', 'lng', 'rating', 'price', 'kind', 'cover_image', 'tags',
+    'day', 'seq', 'visit_minutes'];
+
+  // 导出文件：只带跨设备还原所需的字段，id 与本地时间戳留给接收端重新分配
+  function tripFilePayload(trip) {
+    const items = (trip.items || []).map((item) => {
+      const out = {};
+      TRIP_ITEM_FIELDS.forEach((field) => {
+        const value = item[field];
+        if (value !== undefined && value !== null && value !== '') out[field] = value;
+      });
+      out.name = item.name || item.attraction_name || '';
+      out.kind = item.kind === 'hotel' ? 'hotel' : 'attraction';
+      out.day = Math.max(1, Number(item.day) || 1);
+      out.seq = Math.max(0, Number(item.seq) || 0);
+      out.visit_minutes = Math.max(0, Number(item.visit_minutes) || 0);
+      return out;
+    });
+    return {
+      format: TRIP_FILE_FORMAT,
+      version: TRIP_FILE_VERSION,
+      app: 'TravelOne',
+      exported_at: new Date().toISOString(),
+      trip: {
+        title: trip.title || 'My trip',
+        city: trip.city || '',
+        start_date: trip.start_date || '',
+        created_at: trip.created_at || '',
+        items,
+      },
+    };
+  }
+
+  function downloadTripFile(payload) {
+    const slug = String(payload.trip.title || 'trip').trim()
+      .replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'trip';
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const name = 'travelone-' + slug + '-' + stamp + '.json';
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return name;
+  }
+
+  async function exportTrip() {
+    try {
+      if (state.tripId) await refreshTrip();
+      const count = state.trip && state.trip.items ? state.trip.items.length : 0;
+      if (!count) { toast(zh('Add at least one place before exporting', '请先加入至少一个地点再导出'), 'err'); return; }
+      const payload = tripFilePayload(state.trip);
+      const name = downloadTripFile(payload);
+      toast(zh('Exported ' + count + ' places to ' + name, '已导出 ' + count + ' 个地点到 ' + name), 'ok');
+    } catch (err) { toast(zh('Export failed: ' + err.message, '导出失败：' + err.message), 'err'); }
+  }
+
+  // 接受本应用导出的 {format, version, trip} 文件，也接受裸行程对象
+  function parseTripFile(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('JSON root is not an object');
+    if (raw.format && raw.format !== TRIP_FILE_FORMAT) throw new Error('Not a TravelOne trip file');
+    if (raw.version && Number(raw.version) > TRIP_FILE_VERSION) throw new Error('File version is newer than this app');
+    const source = raw.trip && typeof raw.trip === 'object' ? raw.trip : raw;
+    const items = (Array.isArray(source.items) ? source.items : [])
+      .filter((item) => item && typeof item === 'object' && (item.name || item.attraction_name));
+    if (!items.length) throw new Error('No usable places in this file');
+    return {
+      title: String(source.title || 'Imported trip').slice(0, 120),
+      city: source.city || '',
+      start_date: source.start_date || '',
+      items,
+    };
+  }
+
+  async function importTripFile(file) {
+    try {
+      const text = await file.text();
+      let raw;
+      try { raw = JSON.parse(text); } catch (e) { throw new Error('File is not valid JSON'); }
+      const tripData = parseTripFile(raw);
+      const payload = tripFilePayload(tripData);
+      const res = await API.importTrip(payload);
+      state.tripId = res.trip.id;
+      state.trip = res.trip;
+      localStorage.setItem('travelone.tripId', String(state.tripId));
+      state.plan = null;
+      if (state.map) { state.map.setMarkers([]); state.map.setRoute({ days: [] }); }
+      const planBox = document.getElementById('planResult');
+      if (planBox) planBox.innerHTML = '';
+      await refreshTrip();
+      renderComparePickers();
+      toast(zh('Imported ' + res.trip.items.length + ' places as "' + res.trip.title + '"',
+        '已导入 ' + res.trip.items.length + ' 个地点，行程「' + res.trip.title + '」'), 'ok');
+      document.getElementById('trip').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) { toast(zh('Import failed: ' + err.message, '导入失败：' + err.message), 'err'); }
+  }
+
   function tripDays() {
     const items = state.trip ? state.trip.items : [];
     return Math.max(1, items.reduce((m, i) => Math.max(m, i.day || 1), 1));
@@ -1308,6 +1412,7 @@
     $('#tripBadge').textContent = count;
     $('#tripBadge').classList.toggle('on', count > 0);
     $('#planBtn').disabled = count === 0;
+    $('#tripExport').disabled = count === 0;
     if (!count) {
       $('#tripMeta').textContent = 'Add places or hotels, then plan in one click';
       box.innerHTML = `<div class="empty"><b>Your trip is empty</b>Use Add to trip on an attraction card, or Add as stay on a hotel card</div>`;
@@ -1325,10 +1430,10 @@
             <div class="trip-item${item.kind === 'hotel' ? ' is-hotel' : ''}">
               <div class="idx">${idx + 1}</div>
               <div class="ti-main">
-                <div class="ti-name">${item.kind === 'hotel' ? '🏨 ' : ''}${esc(item.attraction_name)}</div>
+<div class="ti-name">${item.kind === 'hotel' ? '🏨 ' : ''}${esc(item.attraction_name || item.name || '')}</div>
                 <div class="ti-meta">${item.kind === 'hotel' ? 'Stay' : 'Attraction'} · ★ ${(Number(item.rating) || 0).toFixed(1)} · ${money(item.price)}${item.kind === 'hotel' ? (item.address ? ' · ' + esc(item.address) : '') : ''}</div>
               </div>
-              <select data-move="${item.id}">${Array.from({ length: 7 }, (_, k) => k + 1).map((d) => `<option value="${d}" ${d === day ? 'selected' : ''}>D${d}</option>`).join('')}</select>
+              <select data-move="${item.id}">${Array.from({ length: Math.max(7, days) }, (_, k) => k + 1).map((d) => `<option value="${d}" ${d === day ? 'selected' : ''}>D${d}</option>`).join('')}</select>
               <button class="del" data-del="${item.id}" title="Remove">✕</button>
             </div>`).join('') : '<div style="font-size:12px;color:#7c9099;padding:6px 2px">Nothing planned for this day</div>'}
         </div>
@@ -2292,7 +2397,14 @@ const fuel = data.fuel || {};
 
     // Trip
     $('#tripJump').addEventListener('click', () => document.getElementById('trip').scrollIntoView({ behavior: 'smooth' }));
-    $('#planBtn').addEventListener('click', runPlan);
+$('#planBtn').addEventListener('click', runPlan);
+    $('#tripExport').addEventListener('click', exportTrip);
+    $('#tripImport').addEventListener('click', () => $('#tripFileInput').click());
+    $('#tripFileInput').addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (file) await importTripFile(file);
+    });
     $('#tripNewDay').addEventListener('click', async () => {
       if (!state.trip || !state.trip.items.length) return toast('Add at least one place first');
       const items = state.trip.items.map((i) => ({ id: i.id, day: i.day || 1, seq: i.seq || 0, visit_minutes: i.visit_minutes || 0 }));
